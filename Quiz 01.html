@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAT Practice Quiz</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #fff;
+        color: #000;
+        transition: background-color 0.5s, color 0.5s;
+    }
+    h1 { text-align: center; animation: fadeIn 1s ease-in; }
+    .question {
+        margin-bottom: 20px;
+        padding: 10px;
+        border-bottom: 1px solid #ccc;
+        opacity: 0;
+        animation: fadeIn 1s forwards;
+    }
+    .options label {
+        display: block;
+        margin: 5px 0;
+        padding: 5px;
+        border-radius: 5px;
+        transition: background-color 0.3s;
+    }
+    .options label:hover {
+        background-color: #e6f7ff;
+        cursor: pointer;
+    }
+    #result {
+        font-weight: bold;
+        margin-top: 20px;
+        font-size: 18px;
+        opacity: 0;
+        transition: opacity 0.8s ease-in;
+    }
+    button {
+        padding: 10px 15px;
+        font-size: 16px;
+        margin-top: 10px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    button:hover {
+        background-color: #007bff;
+        color: #fff;
+    }
+    #timer {
+        font-size: 18px;
+        color: #d9534f;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 10px;
+        transition: color 0.3s;
+    }
+    #progress-container {
+        width: 100%;
+        background-color: #f3f3f3;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+    #progress-bar {
+        width: 0%;
+        height: 20px;
+        background-color: #5cb85c;
+        border-radius: 5px;
+        transition: width 0.5s ease-in-out;
+    }
+    .correct { color: green; font-weight: bold; animation: fadeIn 0.8s ease-in; }
+    .wrong { color: red; font-weight: bold; animation: fadeIn 0.8s ease-in; }
+    .concept { font-style: italic; color: #333; margin-top: 5px; animation: fadeIn 1s ease-in; }
+    .dark-mode { background-color: #121212; color: #f1f1f1; }
+    .dark-mode #progress-container { background-color: #333; }
+    .dark-mode #progress-bar { background-color: #4caf50; }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+        0% { color: #d9534f; transform: scale(1); }
+        50% { color: #ff0000; transform: scale(1.2); }
+        100% { color: #d9534f; transform: scale(1); }
+    }
+    .warning {
+        animation: pulse 1s infinite;
+    }
+</style>
+</head>
+<body>
+<h1>SAT Practice Quiz – 25 Hard Questions</h1>
+<div id="timer">Time Left: 20:00</div>
+<div id="progress-container"><div id="progress-bar"></div></div>
+<button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+<form id="quizForm"></form>
+<button type="button" onclick="checkAnswers()">Submit Quiz</button>
+<button type="button" onclick="restartQuiz()" style="display:none;" id="restartBtn">Restart Quiz</button>
+<div id="result"></div>
+
+<script>
+// Questions array with concept and tips
+const questions = [
+    { q: "1. The author’s primary purpose in the passage is to:",
+      options: ["A) Criticize early astronomers", "B) Explain how anomalies contributed to progress", "C) Argue elliptical orbits are superior", "D) Describe limitations of celestial mechanics"],
+      answer: "B",
+      concept: "Concept: Author’s Purpose – Identify why the author wrote the passage.",
+      tip: "Tip: Look for the main idea and tone. Avoid extreme choices unless strongly supported."
+    },
+    { q: "2. The word 'revolutionized' most nearly means:",
+      options: ["A) Gradually improved", "B) Completely transformed", "C) Slightly modified", "D) Temporarily disrupted"],
+      answer: "B",
+      concept: "Concept: Vocabulary in Context – Understand meaning based on passage clues.",
+      tip: "Tip: Focus on context clues around the word. 'Revolutionized' suggests a major change."
+    },
+    // ✅ Add remaining 23 questions with concept and tip...
+];
+
+const form = document.getElementById('quizForm');
+questions.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.style.animationDelay = `${index * 0.1}s`; // staggered animation
+    div.innerHTML = `<p>${item.q}</p>`;
+    item.options.forEach(opt => {
+        div.innerHTML += `<label><input type="radio" name="q${index}" value="${opt.charAt(0)}"> ${opt}</label>`;
+    });
+    form.appendChild(div);
+});
+
+// Timer
+let timeLeft = 20 * 60; // 20 minutes
+const timerElement = document.getElementById('timer');
+const timerInterval = setInterval(() => {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timerElement.textContent = `Time Left: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    
+    // Warning animation when 1 minute left
+    if (timeLeft <= 60) {
+        timerElement.classList.add('warning');
+    }
+    
+    if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        checkAnswers();
+    }
+    timeLeft--;
+}, 1000);
+
+// Progress Bar
+function updateProgress() {
+    const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+    const progress = (answered / questions.length) * 100;
+    document.getElementById('progress-bar').style.width = progress + '%';
+}
+document.addEventListener('change', updateProgress);
+
+// Check Answers and Show Correct Answers + Concept + Tip
+function checkAnswers() {
+    clearInterval(timerInterval);
+    let score = 0;
+    questions.forEach((item, index) => {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        const questionDiv = document.querySelectorAll('.question')[index];
+        if (selected && selected.value === item.answer) {
+            score++;
+            questionDiv.innerHTML += `<p class="correct">✅ Correct! Answer: ${item.answer}</p>`;
+        } else {
+            questionDiv.innerHTML += `<p class="wrong">❌ Wrong. Correct Answer: ${item.answer}</p>`;
+        }
+        questionDiv.innerHTML += `<p class="concept">${item.concept}</p><p class="concept">${item.tip}</p>`;
+    });
+    const resultDiv = document.getElementById('result');
+    resultDiv.style.opacity = 1;
+    resultDiv.innerHTML = `You scored ${score} out of ${questions.length}.`;
+    document.getElementById('restartBtn').style.display = 'inline-block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Restart Quiz
+function restartQuiz() {
+    location.reload();
+}
+
+// Dark Mode Toggle
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+}
+</script>
+</body>
+</html>
